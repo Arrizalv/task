@@ -148,76 +148,76 @@ export default function Home() {
 
   // --- RENDERING (Tampilan) ---
   return (
-    <main className="p-5 md:p-10 text-center max-w-xl mx-auto min-h-screen bg-gray-50">
-      <h1 className="text-4xl font-extrabold text-blue-700 mb-10">
+    <main className="p-5 md:p-10 text-center max-w-xl mx-auto min-h-screen bg-black text-white">
+      <h1 className="text-4xl font-extrabold text-red-500 mb-10">
         Manajemen Tugas 📋
       </h1>
 
       {/* --- FORM INPUT (CREATE/UPDATE) --- */}
-      <div className="bg-white border-t-4 border-blue-500 p-6 rounded-xl shadow-lg mb-10 text-left">
-        <h2 className="text-2xl font-bold text-gray-800 mb-5 border-b pb-2">
+      <div className="bg-gray-900 border-t-4 border-red-600 p-6 rounded-xl shadow-lg mb-10 text-left">
+        <h2 className="text-2xl font-bold text-white mb-5 border-b border-red-700 pb-2">
           {editingId ? '✏️ Edit Tugas' : '➕ Tambah Tugas Baru'}
         </h2>
         
         {/* Nama Tugas */}
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">Nama Tugas:</label>
+          <label className="block text-sm font-medium text-gray-200 mb-1">Nama Tugas:</label>
           <input 
             type="text" 
             value={job} 
             onChange={(e) => setJob(e.target.value)} 
             placeholder="Contoh: Membuat Laporan..."
-            className="w-full p-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
+            className="w-full p-2 bg-gray-800 text-white border border-gray-700 rounded-lg focus:ring-red-400 focus:border-red-500 disabled:bg-gray-700"
             disabled={loading}
           />
         </div>
         
         {/* Pemberi Tugas */}
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">Pemberi Tugas:</label>
+          <label className="block text-sm font-medium text-gray-200 mb-1">Pemberi Tugas:</label>
           <input 
             type="text" 
             value={assignor} 
             onChange={(e) => setAssignor(e.target.value)} 
             placeholder="Contoh: Pak Budi..."
-            className="w-full p-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
+            className="w-full p-2 bg-gray-800 text-white border border-gray-700 rounded-lg focus:ring-red-400 focus:border-red-500 disabled:bg-gray-700"
             disabled={loading}
           />
         </div>
         
         {/* Deadline */}
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">Deadline:</label>
+          <label className="block text-sm font-medium text-gray-200 mb-1">Deadline:</label>
           <input 
             type="date" 
             value={deadline} 
             onChange={(e) => setDeadline(e.target.value)} 
-            className="w-full p-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
+            className="w-full p-2 bg-gray-800 text-white border border-gray-700 rounded-lg focus:ring-red-400 focus:border-red-500 disabled:bg-gray-700"
             disabled={loading}
           />
         </div>
         
         {/* Tanggal Selesai (Opsional) */}
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">Tanggal Selesai (Opsional):</label>
+          <label className="block text-sm font-medium text-gray-200 mb-1">Tanggal Selesai (Opsional):</label>
           <input 
             type="date" 
             value={finishdate} 
             onChange={(e) => setFinishdate(e.target.value)} 
-            className="w-full p-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
+            className="w-full p-2 bg-gray-800 text-white border border-gray-700 rounded-lg focus:ring-red-400 focus:border-red-500 disabled:bg-gray-700"
             disabled={loading}
           />
         </div>
         
         {/* Keterangan Tugas */}
         <div className="mb-6">
-          <label className="block text-sm font-medium text-gray-700 mb-1">Keterangan Tugas:</label>
+          <label className="block text-sm font-medium text-gray-200 mb-1">Keterangan Tugas:</label>
           <textarea 
             value={jobdesc} 
             onChange={(e) => setJobdesc(e.target.value)} 
             placeholder="Deskripsi detail tugas..."
             rows={3}
-            className="w-full p-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
+            className="w-full p-2 bg-gray-800 text-white border border-gray-700 rounded-lg focus:ring-red-400 focus:border-red-500 disabled:bg-gray-700"
             disabled={loading}
           />
         </div>
@@ -227,7 +227,7 @@ export default function Home() {
           {editingId && (
             <button 
               onClick={resetForm} 
-              className="px-4 py-2 bg-gray-400 text-white font-medium rounded-lg hover:bg-gray-500 transition duration-150 disabled:opacity-50"
+              className="px-4 py-2 bg-gray-700 text-white font-medium rounded-lg hover:bg-gray-600 transition duration-150 disabled:opacity-50"
               disabled={loading}
             >
               Batal Edit
@@ -237,8 +237,8 @@ export default function Home() {
             onClick={handleSubmit} 
             className={`px-4 py-2 text-white font-semibold rounded-lg transition duration-150 disabled:opacity-50 ${
               editingId 
-                ? 'bg-orange-500 hover:bg-orange-600'
-                : 'bg-blue-600 hover:bg-blue-700'
+                ? 'bg-red-500 hover:bg-red-600'
+                : 'bg-red-600 hover:bg-red-700'
             }`}
             disabled={loading}
           >
@@ -248,11 +248,11 @@ export default function Home() {
       </div>
 
       {/* --- DAFTAR DATA (READ) --- */}
-      <h2 className="text-3xl font-bold text-gray-800 mb-6 mt-10 border-b-2 border-blue-500 pb-2">Daftar Tugas Saat Ini</h2>
+  <h2 className="text-3xl font-bold text-white mb-6 mt-10 border-b-2 border-red-600 pb-2">Daftar Tugas Saat Ini</h2>
       
-      {loading && <p className="text-blue-600 font-semibold mt-4">Mengambil data...</p>}
+  {loading && <p className="text-red-400 font-semibold mt-4">Mengambil data...</p>}
       
-      {error && <p className="text-red-500 mt-4 font-medium">⚠️ Error: {error}</p>}
+  {error && <p className="text-red-300 mt-4 font-medium">⚠️ Error: {error}</p>}
 
       {!loading && !error && (
         <div className="text-left">
@@ -261,27 +261,26 @@ export default function Home() {
               {tasks.map((task) => (
                 <li 
                   key={task.id} 
-                  className="bg-white border-l-4 border-blue-400 p-4 rounded-xl shadow-md hover:shadow-lg transition duration-200"
+                  className="bg-gray-800 border-l-4 border-red-600 p-4 rounded-xl shadow-md hover:shadow-lg transition duration-200"
                 >
                   <div className="flex justify-between items-start mb-2">
-                    <h3 className="text-xl font-bold text-blue-700">
+                    <h3 className="text-xl font-bold text-red-400">
                       {task.job}
                     </h3>
-                    <div className="text-sm text-gray-500">
+                    <div className="text-sm text-red-300">
                       Dibuat: {formatDate(task.created_at)}
                     </div>
                   </div>
-
-                  <p className="text-sm text-gray-600 mb-1">
-                    <strong>Pemberi Tugas:</strong> {task.assignor}
+                  <p className="text-sm text-gray-200 mb-1">
+                    <strong className="text-red-300">Pemberi Tugas:</strong> {task.assignor}
                   </p>
-                  <p className="text-sm text-gray-600 mb-1">
-                    <strong>Deadline:</strong> {formatDate(task.deadline)}
+                  <p className="text-sm text-gray-200 mb-1">
+                    <strong className="text-red-300">Deadline:</strong> {formatDate(task.deadline)}
                   </p>
-                  <p className="text-sm text-gray-600 mb-1">
-                    <strong>Selesai:</strong> {formatDate(task.finishdate)}
+                  <p className="text-sm text-gray-200 mb-1">
+                    <strong className="text-red-300">Selesai:</strong> {formatDate(task.finishdate)}
                   </p>
-                  <p className="text-sm text-gray-600 mb-3 pl-3">
+                  <p className="text-sm text-gray-200 mb-3 pl-3">
                     {task.jobdesc || 'Tidak ada keterangan.'}
                   </p>
                   
@@ -289,14 +288,14 @@ export default function Home() {
                   <div className="flex gap-2 justify-end">
                     <button 
                       onClick={() => editTask(task)} 
-                      className="px-3 py-1 text-sm bg-blue-500 text-white font-medium rounded-md hover:bg-blue-600 transition disabled:opacity-50"
+                      className="px-3 py-1 text-sm bg-red-500 text-white font-medium rounded-md hover:bg-red-600 transition disabled:opacity-50"
                       disabled={loading}
                     >
                       ✏️ Edit
                     </button>
                     <button 
                       onClick={() => deleteTask(task.id)} 
-                      className="px-3 py-1 text-sm bg-red-500 text-white font-medium rounded-md hover:bg-red-600 transition disabled:opacity-50"
+                      className="px-3 py-1 text-sm bg-gray-700 text-white font-medium rounded-md hover:bg-gray-600 transition disabled:opacity-50"
                       disabled={loading}
                     >
                       🗑️ Hapus
