@@ -65,7 +65,7 @@ export default function Home() {
     // Validasi tanggal deadline (harus di masa depan atau hari ini)
     const deadlineDate = new Date(deadline);
     const now = new Date();
-    if (deadlineDate now.setHours(0, 0, 0, 0)) {
+    if (deadlineDate.getTime() < now.setHours(0, 0, 0, 0)) {
       alert('Deadline harus hari ini atau di masa depan!');
       return;
     }
