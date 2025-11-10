@@ -3,57 +3,62 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabaseClient'
 
-// Definisikan tipe untuk item tugas agar kode lebih aman dan terstruktur
 interface Task {
   id: number;
-  created_at: string; // Tanggal dibuat (string dari Supabase, bisa di-parse sebagai Date)
+  created_at: string;
   job: string;
   assignor: string;
   jobdesc: string | null;
-  deadline: string; // Tanggal deadline (string)
-  finishdate: string | null; // Tanggal selesai (string, bisa null)
+  deadline: string;
+  finishdate: string | null;
 }
 
-// Fungsi Utilitas sederhana untuk memformat tanggal
 const formatDate = (dateString: string | null): string => {
-  if (!dateString) return 'Belum ditentukan';
+  if (!dateString) return 'Belum selesai';
   const date = new Date(dateString);
-  return date.toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' });
+  return date.toLocaleDateString('id-ID', { 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric' 
+  });
 };
 
 export default function Home() {
-  // --- STATE (Ditambahkan Tipe Data) ---
   const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [job, setJob] = useState('')
   const [assignor, setAssignor] = useState('')
   const [jobdesc, setJobdesc] = useState('')
-  const [deadline, setDeadline] = useState('') // String untuk input date
-  const [finishdate, setFinishdate] = useState('') // String untuk input date, optional
-  const [editingId, setEditingId] = useState<number | null>(null) 
+  const [deadline, setDeadline] = useState('')
+  const [finishdate, setFinishdate] = useState('') 
+  const [editingId, setEditingId] = useState<number | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false) // Tambah state submit protection
 
-  // --- FUNGSI CRUD & UTILITY ---
   const fetchTasks = useCallback(async () => {
     setLoading(true)
-    setError(null)
-    const { data, error } = await supabase
-      .from('todos') // Nama tabel diubah ke 'todos'
-      .select('id, created_at, job, assignor, jobdesc, deadline, finishdate') // Pastikan nama kolom sesuai di Supabase
-      .order('created_at', { ascending: false }) // Urutkan berdasarkan tanggal dibuat, terbaru dulu
-    
-    if (error) {
-      console.error('❌ Gagal mengambil data:', error.message)
-      setError(error.message)
+    setError(null) // Reset error saat mulai fetch
+    try {
+      const { data, error } = await supabase
+        .from('todos')
+        .select('id, created_at, job, assignor, jobdesc, deadline, finishdate')
+        .order('created_at', { ascending: false })
+      
+      if (error) throw error
+      setTasks(data || [])
+      setError(null) // Clear error jika fetch sukses
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Terjadi kesalahan tak terduga'
+      console.error('❌ Gagal mengambil data:', errorMessage)
+      setError(errorMessage)
       setTasks([])
-    } else {
-      setTasks(data as Task[]) // Type-casting data
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }, [])
 
   useEffect(() => {
-    fetchTasks() 
+    fetchTasks()
   }, [fetchTasks])
 
   async function handleSubmit() {
@@ -61,77 +66,90 @@ export default function Home() {
       alert('Nama Tugas, Pemberi Tugas, dan Deadline tidak boleh kosong!')
       return
     }
-    
-    // Validasi tanggal deadline (harus di masa depan atau hari ini)
-    const deadlineDate = new Date(deadline);
-    const now = new Date();
-    if (deadlineDate.getTime() < now.setHours(0, 0, 0, 0)) {
+
+    // ✅ Perbaikan Validasi Tanggal (Timezone-safe)
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0]; // Format YYYY-MM-DD UTC
+
+    if (deadline < todayStr) {
       alert('Deadline harus hari ini atau di masa depan!');
       return;
     }
-    
-    // Jika finishdate diisi, pastikan valid
-    let finishDateValue: string | null = null;
-    if (finishdate) {
-      const finishDate = new Date(finishdate);
-      if (finishDate > deadlineDate) {
-        alert('Tanggal selesai tidak boleh melebihi deadline!');
-        return;
-      }
-      finishDateValue = finishdate;
-    }
-    
-    setLoading(true)
-    let error
-    
-    if (editingId) {
-      // MODE UPDATE
-      const { error: updateError } = await supabase
-        .from('todos') // Nama tabel diubah ke 'todos'
-        .update({ job, assignor, jobdesc, deadline, finishdate: finishDateValue })
-        .eq('id', editingId)
-      error = updateError
-    } else {
-      // MODE CREATE (created_at akan di-set otomatis oleh Supabase jika ada default)
-      const { error: createError } = await supabase
-        .from('todos') // Nama tabel diubah ke 'todos'
-        .insert({ job, assignor, jobdesc, deadline, finishdate: finishDateValue })
-      error = createError
+
+    if (finishdate && finishdate > deadline) {
+      alert('Tanggal selesai tidak boleh melebihi deadline!');
+      return;
     }
 
-    if (error) {
-      console.error('❌ Gagal simpan data:', error.message)
-      alert(`Gagal ${editingId ? 'Update' : 'Tambah'} data: ${error.message}`)
-    } else {
-      resetForm()
-      await fetchTasks()
+    setIsSubmitting(true)
+    try {
+      let query;
+      const finishDateValue = finishdate || null; // Konversi string kosong ke null
+
+      if (editingId) {
+        query = supabase
+          .from('todos')
+          .update({ 
+            job, 
+            assignor, 
+            jobdesc: jobdesc || null, 
+            deadline, 
+            finishdate: finishDateValue 
+          })
+          .eq('id', editingId)
+      } else {
+        query = supabase
+          .from('todos')
+          .insert([{ 
+            job, 
+            assignor, 
+            jobdesc: jobdesc || null, 
+            deadline, 
+            finishdate: finishDateValue 
+          }])
+      }
+
+      const { error } = await query;
+      if (error) throw error;
+
+      resetForm();
+      await fetchTasks();
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Gagal menyimpan data'
+      console.error('❌ Gagal simpan data:', errorMessage)
+      alert(`Gagal ${editingId ? 'Update' : 'Tambah'} data: ${errorMessage}`)
+    } finally {
+      setIsSubmitting(false)
     }
-    setLoading(false)
   }
 
-  async function deleteTask(id: number) { // Tambahkan tipe number
-    if (window.confirm('Yakin ingin menghapus tugas ini?')) {
-      setLoading(true)
+  async function deleteTask(id: number) {
+    if (!confirm('Yakin ingin menghapus tugas ini?')) return;
+    
+    setLoading(true)
+    try {
       const { error } = await supabase
-        .from('todos') // Nama tabel diubah ke 'todos'
+        .from('todos')
         .delete()
         .eq('id', id)
 
-      if (error) {
-        console.error('❌ Gagal hapus data:', error.message)
-        alert('Gagal hapus data: ' + error.message)
-      } else {
-        await fetchTasks() 
-      }
+      if (error) throw error;
+      await fetchTasks();
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Gagal menghapus data'
+      alert('Gagal hapus data: ' + errorMessage)
+      console.error('❌ Gagal hapus data:', errorMessage)
+    } finally {
       setLoading(false)
     }
   }
 
-  function editTask(task: Task) { // Tambahkan tipe Task
+  function editTask(task: Task) {
     setJob(task.job)
     setAssignor(task.assignor)
     setJobdesc(task.jobdesc || '')
     setDeadline(task.deadline)
+    // ✅ Perbaikan: Handle null finishdate
     setFinishdate(task.finishdate || '')
     setEditingId(task.id)
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -142,24 +160,21 @@ export default function Home() {
     setAssignor('')
     setJobdesc('')
     setDeadline('')
-    setFinishdate('')
+    setFinishdate('') // Pastikan direset ke string kosong
     setEditingId(null)
   }
 
-  // --- RENDERING (Tampilan) ---
   return (
     <main className="p-5 md:p-10 text-center max-w-xl mx-auto min-h-screen bg-black text-white">
       <h1 className="text-4xl font-extrabold text-red-500 mb-10">
         Manajemen Tugas 📋
       </h1>
 
-      {/* --- FORM INPUT (CREATE/UPDATE) --- */}
       <div className="bg-gray-900 border-t-4 border-red-600 p-6 rounded-xl shadow-lg mb-10 text-left">
         <h2 className="text-2xl font-bold text-white mb-5 border-b border-red-700 pb-2">
           {editingId ? '✏️ Edit Tugas' : '➕ Tambah Tugas Baru'}
         </h2>
         
-        {/* Nama Tugas */}
         <div className="mb-4">
           <label className="block text-sm font-medium text-gray-200 mb-1">Nama Tugas:</label>
           <input 
@@ -168,11 +183,10 @@ export default function Home() {
             onChange={(e) => setJob(e.target.value)} 
             placeholder="Contoh: Membuat Laporan..."
             className="w-full p-2 bg-gray-800 text-white border border-gray-700 rounded-lg focus:ring-red-400 focus:border-red-500 disabled:bg-gray-700"
-            disabled={loading}
+            disabled={loading || isSubmitting}
           />
         </div>
         
-        {/* Pemberi Tugas */}
         <div className="mb-4">
           <label className="block text-sm font-medium text-gray-200 mb-1">Pemberi Tugas:</label>
           <input 
@@ -181,11 +195,10 @@ export default function Home() {
             onChange={(e) => setAssignor(e.target.value)} 
             placeholder="Contoh: Pak Budi..."
             className="w-full p-2 bg-gray-800 text-white border border-gray-700 rounded-lg focus:ring-red-400 focus:border-red-500 disabled:bg-gray-700"
-            disabled={loading}
+            disabled={loading || isSubmitting}
           />
         </div>
         
-        {/* Deadline */}
         <div className="mb-4">
           <label className="block text-sm font-medium text-gray-200 mb-1">Deadline:</label>
           <input 
@@ -193,11 +206,11 @@ export default function Home() {
             value={deadline} 
             onChange={(e) => setDeadline(e.target.value)} 
             className="w-full p-2 bg-gray-800 text-white border border-gray-700 rounded-lg focus:ring-red-400 focus:border-red-500 disabled:bg-gray-700"
-            disabled={loading}
+            min={new Date().toISOString().split('T')[0]} // Batasi tanggal minimum
+            disabled={loading || isSubmitting}
           />
         </div>
         
-        {/* Tanggal Selesai (Opsional) */}
         <div className="mb-4">
           <label className="block text-sm font-medium text-gray-200 mb-1">Tanggal Selesai (Opsional):</label>
           <input 
@@ -205,11 +218,11 @@ export default function Home() {
             value={finishdate} 
             onChange={(e) => setFinishdate(e.target.value)} 
             className="w-full p-2 bg-gray-800 text-white border border-gray-700 rounded-lg focus:ring-red-400 focus:border-red-500 disabled:bg-gray-700"
-            disabled={loading}
+            max={deadline || undefined} // Batasi maksimal sesuai deadline
+            disabled={loading || isSubmitting}
           />
         </div>
         
-        {/* Keterangan Tugas */}
         <div className="mb-6">
           <label className="block text-sm font-medium text-gray-200 mb-1">Keterangan Tugas:</label>
           <textarea 
@@ -218,17 +231,16 @@ export default function Home() {
             placeholder="Deskripsi detail tugas..."
             rows={3}
             className="w-full p-2 bg-gray-800 text-white border border-gray-700 rounded-lg focus:ring-red-400 focus:border-red-500 disabled:bg-gray-700"
-            disabled={loading}
+            disabled={loading || isSubmitting}
           />
         </div>
 
-        {/* Tombol Submit & Batal */}
         <div className="flex justify-end gap-3">
           {editingId && (
             <button 
               onClick={resetForm} 
               className="px-4 py-2 bg-gray-700 text-white font-medium rounded-lg hover:bg-gray-600 transition duration-150 disabled:opacity-50"
-              disabled={loading}
+              disabled={loading || isSubmitting}
             >
               Batal Edit
             </button>
@@ -240,19 +252,25 @@ export default function Home() {
                 ? 'bg-red-500 hover:bg-red-600'
                 : 'bg-red-600 hover:bg-red-700'
             }`}
-            disabled={loading}
+            disabled={loading || isSubmitting}
           >
-            {loading ? 'Memproses...' : editingId ? '💾 Simpan Perubahan' : '➕ Tambah Tugas'}
+            {(loading || isSubmitting) 
+              ? 'Memproses...' 
+              : editingId 
+                ? '💾 Simpan Perubahan' 
+                : '➕ Tambah Tugas'
+            }
           </button>
         </div>
       </div>
 
-      {/* --- DAFTAR DATA (READ) --- */}
-  <h2 className="text-3xl font-bold text-white mb-6 mt-10 border-b-2 border-red-600 pb-2">Daftar Tugas Saat Ini</h2>
+      <h2 className="text-3xl font-bold text-white mb-6 mt-10 border-b-2 border-red-600 pb-2">
+        Daftar Tugas Saat Ini
+      </h2>
       
-  {loading && <p className="text-red-400 font-semibold mt-4">Mengambil data...</p>}
+      {loading && <p className="text-red-400 font-semibold mt-4">Mengambil data...</p>}
       
-  {error && <p className="text-red-300 mt-4 font-medium">⚠️ Error: {error}</p>}
+      {error && <p className="text-red-300 mt-4 font-medium">⚠️ Error: {error}</p>}
 
       {!loading && !error && (
         <div className="text-left">
@@ -284,7 +302,6 @@ export default function Home() {
                     {task.jobdesc || 'Tidak ada keterangan.'}
                   </p>
                   
-                  {/* Tombol Aksi */}
                   <div className="flex gap-2 justify-end">
                     <button 
                       onClick={() => editTask(task)} 
